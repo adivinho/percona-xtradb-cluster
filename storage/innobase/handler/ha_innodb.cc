@@ -1,6 +1,6 @@
 /*****************************************************************************
 
-Copyright (c) 2000, 2023, Oracle and/or its affiliates.
+Copyright (c) 2000, 2024, Oracle and/or its affiliates.
 Copyright (c) 2008, 2009 Google Inc.
 Copyright (c) 2009, Percona Inc.
 Copyright (c) 2012, Facebook Inc.
@@ -22,12 +22,13 @@ This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License, version 2.0, as published by the
 Free Software Foundation.
 
-This program is also distributed with certain software (including but not
-limited to OpenSSL) that is licensed under separate terms, as designated in a
-particular file or component or in included license documentation. The authors
-of MySQL hereby grant you an additional permission to link the program and
-your derivative works with the separately licensed software that they have
-included with MySQL.
+This program is designed to work with certain software (including
+but not limited to OpenSSL) that is licensed under separate terms,
+as designated in a particular file or component or in included license
+documentation.  The authors of MySQL hereby grant you an additional
+permission to link the program and your derivative works with the
+separately licensed software that they have either included with
+the program or referenced in the documentation.
 
 This program is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -123,6 +124,7 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "ha_innodb.h"
 #include "ha_innopart.h"
 #include "ha_prototypes.h"
+#include "handler0alter.h"  //alter_stats_rebuild()
 #include "i_s.h"
 #include "ibuf0ibuf.h"
 #include "lex_string.h"
@@ -2065,11 +2067,21 @@ static inline dberr_t innobase_srv_conc_enter_innodb(row_prebuilt_t *prebuilt) {
   }
 
 #ifdef WITH_WSREP
-  // innodb_thread_concurreny limit how many thread can work in innodb
-  // at any given time. This limit is not applicable to wsrep-applier
-  // threads given they are high priority threads.
-  if (wsrep_on(prebuilt->trx->mysql_thd) &&
-      wsrep_thd_is_BF(prebuilt->trx->mysql_thd, false))
+  /*
+   innodb_thread_concurreny limit how many thread can work in innodb
+   at any given time. This limit is not applicable to:
+   1. wsrep-applier threads given they are high priority threads.
+   2. Actions executed from the sst_donor thread should not be blocked as well.
+      sst_donor thread runs with Galera LocalMonitor acquired.
+      If we have user threads entered innodb and about to commit, they will try
+      to acquire LocalMonitor as well, but will block. So without letting
+      sst_donor thread to move on here, we would end up in deadlock.
+   3. TOI, RSU, NBO threads only if they have wsrep_on enabled
+  */
+  THD *thd = prebuilt->trx->mysql_thd;
+  if (thd && WSREP_ON &&
+      (wsrep_thd_is_applying(thd) || thd->wsrep_applier ||
+       thd->wsrep_sst_donor || wsrep_thd_is_BF(thd, false)))
     return DB_SUCCESS;
 #endif /* WITH_WSREP */
 
@@ -2108,8 +2120,10 @@ static inline void innobase_srv_conc_exit_innodb(row_prebuilt_t *prebuilt) {
   // innodb_thread_concurreny limit how many thread can work in innodb
   // at any given time. This limit is not applicable to wsrep-applier
   // threads given they are high priority threads.
-  if (wsrep_on(prebuilt->trx->mysql_thd) &&
-      wsrep_thd_is_BF(prebuilt->trx->mysql_thd, false))
+  THD *thd = prebuilt->trx->mysql_thd;
+  if (thd && WSREP_ON &&
+      (wsrep_thd_is_applying(thd) || thd->wsrep_applier ||
+       thd->wsrep_sst_donor || wsrep_thd_is_BF(thd, false)))
     return;
 #endif /* WITH_WSREP */
 
@@ -5774,7 +5788,9 @@ static int innodb_init(void *p) {
 
   static_assert(DATA_MYSQL_TRUE_VARCHAR == (ulint)MYSQL_TYPE_VARCHAR);
 
+#ifndef _WIN32
   os_file_set_umask(my_umask);
+#endif
 
   /* Setup the memory alloc/free tracing mechanisms before calling
   any functions that could possibly allocate memory. */
@@ -20303,6 +20319,8 @@ int ha_innobase::extra(enum ha_extra_function operation)
       m_prebuilt->table->skip_alter_undo = 1;
       break;
     case HA_EXTRA_END_ALTER_COPY:
+      alter_stats_rebuild(m_prebuilt->table, m_prebuilt->table->name.m_name,
+                          m_user_thd);
       m_prebuilt->table->skip_alter_undo = 0;
       break;
     case HA_EXTRA_NO_AUTOINC_LOCKING:
@@ -22032,19 +22050,21 @@ static xa_status_code innobase_commit_by_xid(
   trx_t *trx = trx_get_trx_by_xid(xid);
 
   if (trx != nullptr) {
-    TrxInInnoDB trx_in_innodb(trx);
-#ifdef WITH_WSREP
-    trx->wsrep_recover_xid = xid;
-#endif /* WITH_WSREP */
+    {
+      TrxInInnoDB trx_in_innodb(trx);
 
-    innobase_commit_low(trx);
+#ifdef WITH_WSREP
+      trx->wsrep_recover_xid = xid;
+#endif /* WITH_WSREP */
+      innobase_commit_low(trx);
+    }
     ut_ad(trx->mysql_thd == nullptr);
     /* use cases are: disconnected xa, slave xa, recovery */
     trx_deregister_from_2pc(trx);
     ut_ad(!trx->will_lock); /* trx cache requirement */
 
 #ifdef WITH_WSREP
-    trx->wsrep_recover_xid = NULL;
+    trx->wsrep_recover_xid = nullptr;
 #endif /* WITH_WSREP */
 
     trx_free_for_background(trx);
@@ -22068,9 +22088,12 @@ static xa_status_code innobase_rollback_by_xid(
   trx_t *trx = trx_get_trx_by_xid(xid);
 
   if (trx != nullptr) {
-    TrxInInnoDB trx_in_innodb(trx);
+    int ret;
+    {
+      TrxInInnoDB trx_in_innodb(trx);
 
-    int ret = innobase_rollback_trx(trx);
+      ret = innobase_rollback_trx(trx);
+    }
 
     trx_deregister_from_2pc(trx);
     ut_ad(!trx->will_lock);
@@ -25646,7 +25669,7 @@ static MYSQL_THDVAR_STR(interpreter, PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_NOPERSIST,
 output is stored in this innodb_interpreter_output variable. */
 static MYSQL_THDVAR_STR(interpreter_output,
                         PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_MEMALLOC |
-                            PLUGIN_VAR_NOPERSIST,
+                            PLUGIN_VAR_NOPERSIST | PLUGIN_VAR_READONLY,
                         "Output from InnoDB testing module (ut0test).", nullptr,
                         nullptr, "The Default Value");
 

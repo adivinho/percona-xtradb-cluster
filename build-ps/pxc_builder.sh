@@ -269,8 +269,8 @@ get_sources(){
 }
 
 switch_to_vault_repo() {
-    sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-Linux-*
-    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-Linux-*
+    sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+    sed -i 's|#\s*baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
 }
 
 get_system(){
@@ -304,7 +304,7 @@ install_deps() {
     CURPLACE=$(pwd)
 
     if [ "x$OS" = "xrpm" ]; then
-        if [ x"$RHEL" = x8 ]; then
+        if [ "x${RHEL}" = "x7" -o x"$RHEL" = x8 ]; then
             switch_to_vault_repo
         fi
         RHEL=$(rpm --eval %rhel)
@@ -313,6 +313,7 @@ install_deps() {
         yum install -y perl
         yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm
         percona-release enable tools testing
+        percona-release enable pxb-24 testing
         if [ "x$RHEL" = "x8" -o "x$RHEL" = "x9" ]; then
             yum -y install dnf-plugins-core epel-release
             yum config-manager --set-enabled powertools
@@ -326,12 +327,17 @@ install_deps() {
             yum -y install readline-devel rpm-build rsync tar time unzip wget zlib-devel selinux-policy-devel
             yum -y install bison boost-devel check-devel cmake libaio-devel libcurl-devel libudev-devel
             yum -y install redhat-rpm-config
-            wget https://archives.fedoraproject.org/pub/archive/fedora/linux/releases/30/Everything/x86_64/os/Packages/r/rpcgen-1.4-2.fc30.x86_64.rpm
-            wget ftp://ftp.pbone.net/mirror/archive.fedoraproject.org/fedora/linux/releases/29/Everything/x86_64/os/Packages/g/gperf-3.1-6.fc29.x86_64.rpm
-            yum -y install rpcgen-1.4-2.fc30.x86_64.rpm gperf-3.1-6.fc29.x86_64.rpm
-
+	    if [ x"$ARCH" = "xx86_64" ]; then
+                wget https://downloads.percona.com/downloads/packaging/rpcgen-1.4-2.fc30.x86_64.rpm
+                wget https://downloads.percona.com/downloads/packaging/gperf-3.1-6.fc29.x86_64.rpm
+                yum -y install rpcgen-1.4-2.fc30.x86_64.rpm gperf-3.1-6.fc29.x86_64.rpm
+	    else
+		yum -y install yum-utils
+		dnf config-manager --enable ol${RHEL}_codeready_builder
+		yum -y install gperf rpcgen
+	    fi
             if [ "x${RHEL}" = "x9" ]; then
-                yum install -y https://yum.oracle.com/repo/OracleLinux/OL9/distro/builder/x86_64/getPackage/procps-ng-devel-3.3.17-8.el9.x86_64.rpm
+                yum install -y https://yum.oracle.com/repo/OracleLinux/OL9/distro/builder/${ARCH}/getPackage/procps-ng-devel-3.3.17-8.el9.${ARCH}.rpm
                 yum -y install dnf-utils
                 dnf config-manager --enable ol9_codeready_builder
                 yum -y install libedit-devel
@@ -363,6 +369,9 @@ install_deps() {
                 echo "waiting"
                 sleep 1
             done
+            if [ "x${RHEL}" = "x7" -o x"$RHEL" = x8 ]; then
+                switch_to_vault_repo
+            fi
             yum -y install  gcc-c++ devtoolset-8-gcc-c++ devtoolset-8-binutils
             source /opt/rh/devtoolset-8/enable
             yum -y install scons check-devel boost-devel cmake3
@@ -380,6 +389,7 @@ install_deps() {
         fi
         if [ "x${RHEL}" = "x8" ]; then
             yum -y install centos-release-stream
+            switch_to_vault_repo
             yum -y install git gcc-toolset-11-gcc gcc-toolset-11-gcc-c++ gcc-toolset-11-annobin-plugin-gcc
             source /opt/rh/gcc-toolset-11/enable
         fi
@@ -419,7 +429,7 @@ install_deps() {
         apt-get -y install dirmngr || true
         apt-get update
         apt-get -y install dirmngr || true
-        wget https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && dpkg -i percona-release_latest.$(lsb_release -sc)_all.deb
+        wget https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb && apt -y install gnupg2 lsb-release ./percona-release_latest.$(lsb_release -sc)_all.deb
         percona-release enable tools release
         percona-release enable pxb-80 testing
         percona-release enable pxb-24 testing
@@ -468,7 +478,7 @@ install_deps() {
         apt-get -y install doxygen doxygen-gui graphviz rsync libcurl4-openssl-dev
         apt-get -y install libcurl4-openssl-dev libre2-dev pkg-config libtirpc-dev libev-dev
         apt-get -y install --download-only percona-xtrabackup-24=2.4.29-1.${DIST}
-        apt-get -y install --download-only percona-xtrabackup-80=8.0.35-30-1.${DIST}
+        apt-get -y install --download-only percona-xtrabackup-80=8.0.35-31-1.${DIST}
     fi
     return;
 }
@@ -523,7 +533,7 @@ build_srpm(){
         echo "It is not possible to build src rpm here"
         exit 1
     fi
-    if [ x"$RHEL" = x8 ]; then
+    if [ "x${RHEL}" = "x7" -o x"$RHEL" = x8 ]; then
         switch_to_vault_repo
     fi
     cd $WORKDIR || exit
@@ -611,6 +621,7 @@ build_srpm(){
 }
 
 build_mecab_lib(){
+    ARCH=$(echo $(uname -m) | sed -e 's:i686:i386:g')
     MECAB_TARBAL="mecab-0.996.tar.gz"
     MECAB_LINK="https://downloads.percona.com/downloads/packaging/mecab/${MECAB_TARBAL}"
     MECAB_DIR="${WORKDIR}/${MECAB_TARBAL%.tar.gz}"
@@ -621,6 +632,12 @@ build_mecab_lib(){
     mkdir ${MECAB_INSTALL_DIR}
     wget ${MECAB_LINK}
     tar xf ${MECAB_TARBAL}
+    if [ x"$ARCH" = "xaarch64" ]; then
+        git clone git://git.savannah.gnu.org/config.git
+        unalias cp
+        cp config/config.guess ${MECAB_DIR}
+        cp config/config.sub ${MECAB_DIR}
+    fi
     cd ${MECAB_DIR} || exit
     ./configure --with-pic --prefix=/usr
     make
@@ -664,7 +681,7 @@ build_rpm(){
         echo "It is not possible to build rpm here"
         exit 1
     fi
-    if [ x"$RHEL" = x8 ]; then
+    if [ "x${RHEL}" = "x7" -o x"$RHEL" = x8 ]; then
         switch_to_vault_repo
     fi
     SRC_RPM=$(basename $(find $WORKDIR/srpm -iname 'percona-xtradb-cluster*.src.rpm' | sort | tail -n1))
@@ -890,6 +907,8 @@ build_deb(){
         cat call-home.sh >> percona-xtradb-cluster-server.postinst 
         echo "CALLHOME" >> percona-xtradb-cluster-server.postinst
         echo "bash +x /tmp/call-home.sh -f \"PRODUCT_FAMILY_PXC\" -v \"${MYSQL_VERSION}-${MYSQL_RELEASE}-${DEB_RELEASE}\" -d \"PACKAGE\" &>/dev/null || :" >> percona-xtradb-cluster-server.postinst
+	echo "chgrp percona-telemetry /usr/local/percona/telemetry_uuid &>/dev/null || :" >> percona-xtradb-cluster-server.postinst
+        echo "chmod 664 /usr/local/percona/telemetry_uuid &>/dev/null || :" >> percona-xtradb-cluster-server.postinst
         echo "rm -rf /tmp/call-home.sh" >> percona-xtradb-cluster-server.postinst
         echo "exit 0" >> percona-xtradb-cluster-server.postinst
         rm -f call-home.sh
@@ -898,6 +917,11 @@ build_deb(){
     if [ ${DEBIAN_VERSION} = "noble" ]; then
         sed -i 's/export CFLAGS=/export CFLAGS=-Wno-error=nonnull-compare /' debian/rules
         sed -i 's/export CXXFLAGS=/export CXXFLAGS=-Wno-error=nonnull-compare /' debian/rules
+    fi
+
+    if [ ${DEBIAN_VERSION} = "noble" -a ${ARCH} = "aarch64" ]; then
+        sed -i 's:dh_strip --dbg-package=percona-xtradb-cluster-dbg:mv debian/percona-xtradb-cluster-server/usr/lib/mysql/plugin/authentication_fido.so /tmp\n\tdh_strip --dbg-package=percona-xtradb-cluster-dbg\n\tmv /tmp/authentication_fido.so debian/percona-xtradb-cluster-server/usr/lib/mysql/plugin/authentication_fido.so:' debian/rules
+        sed -i 's:dh_strip -Xlibprotobuf-lite:dh_strip -Xlibprotobuf-lite --exclude=debian/percona-xtradb-cluster-server/usr/lib/mysql/plugin/authentication_fido.so:' debian/rules
     fi
 
     GALERA_REVNO="${GALERA_REVNO}" SCONS_ARGS=' strict_build_flags=0'  MAKE_JFLAG=-j4  dpkg-buildpackage -rfakeroot -uc -us -b
