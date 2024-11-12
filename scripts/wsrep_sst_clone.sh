@@ -22,47 +22,47 @@
 # While this script is based on clone script from Codership, we have
 # done many changes to adapt it to PXC
 #===========================================================================
-#              ┌──────────────────┐                      
-#              │  Joiner starts   │                      
-#              └────────┬─────────┘                      
-#              ┌────────▼─────────┐                      
-#              │open NetCat listnr│                      
-#              └────────┬─────────┘                      
-#              ┌────────▼─────────┐                      
-#              │Send message to Dn│                      
-#              └────────┬─────────┘                      
-#              ┌────────▼─────────┐                      
-#              │Donor decide IST  │                      
-#              │or SST. Send msg  │                      
-#              │through NC and    │                      
-#              │waits for Joiner  │                      
-#              │Clone instance    │                      
-#              └────────┬─────────┘                      
-#              ┌────────▼─────────┐                      
-#              │Joiner get IST    │                      
-#              │or SST.If IST     │                      
-#              │Bypass all and    │                      
-#              │Wait for IST.     │                      
-#              │SST Start clone   │                      
-#              │Instance and wait │                      
-#              │for donor to clone│                      
-#              └─────────┬────────┘                      
-#              ┌─────────▼─────────────┐                 
-#              │Clone process is       │                 
-#              │reported.              │                 
-#              │When done Dn waits     │                 
-#              │Joiner close instance  │                 
-#              │And performs 3 restarts│                 
-#              └──────────┬────────────┘                 
-#              ┌──────────▼──────────────┐               
-#              │1) To fix dictionary     │               
-#              │2) To recover position   │               
-#              │3) Final cleanup         │               
-#              └──────────┬──────────────┘               
-#              ┌──────────▼──────────────┐               
-#              │Send final ready signal  │               
-#              │Waits for IST            │               
-#              └─────────────────────────┘               
+#              ┌──────────────────┐
+#              │  Joiner starts   │
+#              └────────┬─────────┘
+#              ┌────────▼─────────┐
+#              │open NetCat listnr│
+#              └────────┬─────────┘
+#              ┌────────▼─────────┐
+#              │Send message to Dn│
+#              └────────┬─────────┘
+#              ┌────────▼─────────┐
+#              │Donor decide IST  │
+#              │or SST. Send msg  │
+#              │through NC and    │
+#              │waits for Joiner  │
+#              │Clone instance    │
+#              └────────┬─────────┘
+#              ┌────────▼─────────┐
+#              │Joiner get IST    │
+#              │or SST.If IST     │
+#              │Bypass all and    │
+#              │Wait for IST.     │
+#              │SST Start clone   │
+#              │Instance and wait │
+#              │for donor to clone│
+#              └─────────┬────────┘
+#              ┌─────────▼─────────────┐
+#              │Clone process is       │
+#              │reported.              │
+#              │When done Dn waits     │
+#              │Joiner close instance  │
+#              │And performs 3 restarts│
+#              └──────────┬────────────┘
+#              ┌──────────▼──────────────┐
+#              │1) To fix dictionary     │
+#              │2) To recover position   │
+#              │3) Final cleanup         │
+#              └──────────┬──────────────┘
+#              ┌──────────▼──────────────┐
+#              │Send final ready signal  │
+#              │Waits for IST            │
+#              └─────────────────────────┘
 #----------------------------------------------------------------------------
 # Config variables:
 #[sst]
@@ -103,16 +103,16 @@ wsrep_log_info "Running: $CMDLINE"
 
 MYPID=$$
 
-if [ "$WSREP_SST_OPT_PARENT" == "" ]; then 
+if [ "$WSREP_SST_OPT_PARENT" == "" ]; then
         PARENT_PID=`cat /proc/$MYPID/status | grep PPid`
     else
         PARENT_PID=$WSREP_SST_OPT_PARENT
-fi 
+fi
 wsrep_log_debug "-> MYPID: $MYPID PARENT PID $PARENT_PID"
 
 
-#Reading netcat port if available in config 
-TSST_PORT=$(parse_cnf sst netcat_port "4442") 
+#Reading netcat port if available in config
+TSST_PORT=$(parse_cnf sst netcat_port "4442")
 
 #reading clone instance port if available in config
 CLONE_INSTANCE_PORT=$(parse_cnf sst clone_instance_port "4444")
@@ -131,6 +131,7 @@ cleanup_donor()
     then
         CLEANUP_CLONE_PLUGIN="UNINSTALL PLUGIN CLONE;"
     else
+        CLEANUP_CLONE_PLUGIN=""
         if [  "$CLEANUP_CLONE_SSL" == "" ]
         then
             $MYSQL_ACLIENT -e "SET GLOBAL loose_clone_ssl_cert='';
@@ -138,8 +139,8 @@ cleanup_donor()
                                SET GLOBAL loose_clone_ssl_ca='';" || :
         fi
     fi
-    if [ ! "$CLONE_USER" == "" ]; then  
-        $MYSQL_ACLIENT -e "DROP USER IF EXISTS '$CLONE_USER';  SET wsrep_on = OFF; $CLEANUP_CLONE_PLUGIN" || : 
+    if [ ! "$CLONE_USER" == "" ]; then
+        $MYSQL_ACLIENT -e "DROP USER IF EXISTS '$CLONE_USER';  SET wsrep_on = OFF; $CLEANUP_CLONE_PLUGIN" || :
     fi
 
     rm -rf "$CLONE_EXECUTE_SQL" ||:
@@ -155,7 +156,7 @@ cleanup_joiner()
     rm -fr $tmp_datadir || :
     rm -f $WSREP_SST_OPT_DATA/XST_FILE.txt || :
     kill -15 $NC_PID || : > /dev/null 2>&1
-    
+
    if [ $CLEANUP_FILES ]
     then
         rm -rf $CLONE_ERR || :
@@ -389,7 +390,7 @@ then
     CLIENT_VERSION=$($MYSQL_CLIENT --version | grep -vi MariaDB | cut -d ' ' -f 4)
     check_client_version $CLIENT_VERSION
 
-    readonly RECIPIENT_USER=$WSREP_SST_OPT_REMOTE_USER 
+    readonly RECIPIENT_USER=$WSREP_SST_OPT_REMOTE_USER
     readonly RECIPIENT_PSWD=$WSREP_SST_OPT_REMOTE_PSWD
     readonly ADMIN_USER=$WSREP_SST_OPT_USER
     readonly ADMIN_PSWD=$WSREP_SST_OPT_PSWD
@@ -398,19 +399,19 @@ then
                    -P$WSREP_SST_OPT_PORT --batch --skip_column_names --silent"
     MYSQL_ACLIENT="$MYSQL_CLIENT -u$ADMIN_USER -S$WSREP_SST_OPT_SOCKET \
                    --batch --skip_column_names --silent"
- 
-    export MYSQL_PWD=$ADMIN_PSWD 
+
+    export MYSQL_PWD=$ADMIN_PSWD
     if [ -z "$WSREP_SST_OPT_LPORT" ]; then
-       readonly WSREP_SST_OPT_LPORT=`$MYSQL_ACLIENT -e "select @@port"` 
+       readonly WSREP_SST_OPT_LPORT=`$MYSQL_ACLIENT -e "select @@port"`
     fi
- 
+
     wsrep_log_debug "-> WSREP_SST_OPT_LPORT: $WSREP_SST_OPT_LPORT "
     wsrep_log_debug "-> MYSQL_ACLIENT: $MYSQL_ACLIENT "
     wsrep_log_debug "-> MYSQL_ACLIENT ADMIN_PSWD: $ADMIN_PSWD"
     wsrep_log_debug "-> MYSQL_RCLIENT: $MYSQL_RCLIENT "
     wsrep_log_debug "-> MYSQL_RUSER: $RECIPIENT_USER | $WSREP_SST_OPT_REMOTE_USER | PWD  $WSREP_SST_OPT_REMOTE_PSWD"
-    
-    
+
+
     if [ $WSREP_SST_OPT_BYPASS -eq 0 ]
     then
         #
@@ -428,7 +429,7 @@ then
         export MYSQL_PWD=$ADMIN_PSWD
         wsrep_log_debug "-> PREPARE DONOR"
         setup_clone_plugin "donor"
-        
+
 #        wsrep_log_info "REQUIRE_SSL=$REQUIRE_SSL, CLIENT_SSL_OPTIONS=$CLIENT_SSL_OPTIONS"
         wsrep_log_debug "-> PREPARED DONE"
 
@@ -455,7 +456,7 @@ EOF
         wsrep_log_debug "-> connecting to donor: $CLONE_PREPARE_SQL $MYSQL_PWD $MYSQL_ACLIENT"
         $MYSQL_ACLIENT --connect-timeout=60 < $CLONE_PREPARE_SQL || RC=$?
         wsrep_log_debug "-> $RC connect to donor done"
-        
+
         if [ "$RC" -ne 0 ]
         then
             wsrep_log_error "Donor prepare returned code $RC"
@@ -465,14 +466,14 @@ EOF
         #Before waiting for the Joiner Clone mysql we send out the message this is a SST
         wsrep_log_debug "-> NETCAT signal to nc -w 1 $WSREP_SST_OPT_HOST $TSST_PORT"
         echo "SST@$WSREP_SST_OPT_GTID" | nc -w 1 $WSREP_SST_OPT_HOST $TSST_PORT || :
-        
+
         # we stay on hold now, waiting for the Joiner to expose the service
         wsrep_log_info "-> WAIT for Joiner MySQL to be available nc -w 1 -i 1 $SST_HOST_STRIPPED $WSREP_SST_OPT_PORT"
         while [ 1 == 1 ]; do
-        	NCPING=`nc -w 1 -i 1 $SST_HOST_STRIPPED $WSREP_SST_OPT_PORT 2> /dev/null` || : 
+        	NCPING=`nc -w 1 -i 1 $SST_HOST_STRIPPED $WSREP_SST_OPT_PORT 2> /dev/null` || :
             if [ "$NCPING" == "" ]; then
                 wsrep_log_info "[second(s) to timeout: $TIMOUT_WAIT_JOINER_CLONE_INSTANCE]"
-            else 
+            else
                 wsrep_log_info "Joiner instance available at $SST_HOST_STRIPPED:$WSREP_SST_OPT_PORT"
                 break
             fi
@@ -480,13 +481,13 @@ EOF
                     wsrep_log_info "TIMEOUT Waiting for the Joiner to setup MySQL clone instance"
                     wsrep_log_error "TIMEOUT Waiting for the Joiner to setup MySQL clone instance $LINENO"
                     break ;
-            fi            
+            fi
             sleep 1
-            ((TIMOUT_WAIT_JOINER_CLONE_INSTANCE-=1))  
+            ((TIMOUT_WAIT_JOINER_CLONE_INSTANCE-=1))
         done
         #Wait is over
         wsrep_log_debug "-> Wait is over"
-        
+
         export MYSQL_PWD="$RECIPIENT_PSWD"
         export MYSQL_USER="$RECIPIENT_USER"
         # Find own address (from which we connected)
@@ -494,9 +495,9 @@ EOF
         USER=`$MYSQL_RCLIENT --skip-column-names -e 'SELECT USER()'`
         LHOST=${USER##*@}
         DONOR=$LHOST:$WSREP_SST_OPT_LPORT
-        
+
         wsrep_log_debug "-> DONOR string: $DONOR"
-        
+
         # Use script file to avoid sensitive information on the command line
         CLONE_EXECUTE_SQL=$(wsrep_mktemp_in_dir "$WSREP_SST_OPT_DATA" --suffix=.sql clone_execute_XXXX)
 cat << EOF > "$CLONE_EXECUTE_SQL"
@@ -508,20 +509,20 @@ EOF
         if [[ -n "$WSREP_LOG_DEBUG" ]]; then
            CLONE_EXECUTE=`cat $CLONE_EXECUTE_SQL` || :
            wsrep_log_debug $CLONE_EXECUTE
-        fi   
-        
+        fi
+
         # Actual cloning process
         wsrep_log_info "JOINER CLONE ACTION CLONING: connecting"
         $MYSQL_RCLIENT --connect-timeout=60 $CLIENT_SSL_OPTIONS < $CLONE_EXECUTE_SQL || RC=$?
         wsrep_log_info "JOINER CLONE ACTION  CLONING: done $RC"
-       
-        
-        #we force the signal to be 0 because we KNOW that with clone when using the mysqld directly (not mysqld_safe) the daemon is shutdown at the end of the clone process, but sometime pxc return error. 
+
+
+        #we force the signal to be 0 because we KNOW that with clone when using the mysqld directly (not mysqld_safe) the daemon is shutdown at the end of the clone process, but sometime pxc return error.
         if [ "$RC" -ne 0 ]; then
             RC=0
             wsrep_log_debug " JOINER CLONE ACTION abruptly terminated, but we can continue"
         fi
-        
+
         #id still there we will manually shutdown
         eval $MYSQL_RCLIENT -e "SHUTDOWN" || :
 
@@ -546,14 +547,14 @@ EOF
         # Instruct recipient to shutdown
         #export MYSQL_PWD="$RECIPIENT_PSWD"
         wsrep_log_info "BYPASS SENDING IST_FILE TO JOINER NetCat: nc $WSREP_SST_OPT_HOST $TSST_PORT"
-        echo $WSREP_SST_OPT_GTID | nc $WSREP_SST_OPT_HOST $TSST_PORT || : 
+        echo $WSREP_SST_OPT_GTID | nc $WSREP_SST_OPT_HOST $TSST_PORT || :
         sleep 4
         wsrep_log_debug "-> Exiting with gtid: $WSREP_SST_OPT_GTID"
     fi
 
     wsrep_log_debug "-> SENDING DONE $ADMIN_PSWD | $MYSQL_PWD | $WSREP_SST_OPT_GTID"
     #DONOR must be clean BEFORE exit given user is removed on DONE
-    
+
     echo "done $WSREP_SST_OPT_GTID"
 
 elif [ "$WSREP_SST_OPT_ROLE" = "joiner" ]
@@ -572,7 +573,7 @@ then
     PARENT_PROC=(`ps -hup $WSREP_SST_OPT_PARENT`)
     CLONE_BINARY=${PARENT_PROC[10]}
     CLONE_BINARY_SAFE="${CLONE_BINARY}_safe"
-    
+
     if [ ! -x "$CLONE_BINARY" ]
     then
         # Not always ps shows full path to the executable
@@ -674,7 +675,7 @@ then
 
     # If port was not set up explicitly in wsrep_sst_address, check defaults
     wsrep_log_debug "-> WSREP_SST_OPT_PORT $WSREP_SST_OPT_PORT"
-    
+
     if [ -n "${WSREP_SST_OPT_PORT:-}" ]
     then
         CLONE_PORT="$WSREP_SST_OPT_PORT"
@@ -682,9 +683,9 @@ then
         CLONE_PORT=$(parse_cnf mysqld port "3306")
     fi
     CLONE_PORT=$CLONE_INSTANCE_PORT
-    
+
     wsrep_log_debug "-> CLONE_PORT $CLONE_PORT"
-    
+
     CLONE_ADDR="$WSREP_SST_OPT_HOST:$CLONE_PORT"
     CLONE_HOST="$WSREP_SST_OPT_HOST"
     wsrep_log_debug "-> CLONE_ADDR $CLONE_ADDR"
@@ -704,7 +705,7 @@ then
 
     DONOR_IP=""
 
-    
+
     if [ ${#CLONE_X_SOCK} -ge 104 ]
     then
         wsrep_log_error "Unix socket path name length for CLONE SST receiver"\
@@ -724,11 +725,11 @@ then
 
     # parent process already did the master key rotation
     INVARIANT_OPTIONS="--binlog-rotate-encryption-master-key-at-startup=OFF"
-    
+
     wsrep_log_debug "-> CLONE_SOCK $CLONE_SOCK "
     wsrep_log_debug "-> CLONE_LIBS $CLONE_LIBS "
 
-    
+
     DEFAULT_OPTIONS=" \
      $DEFAULTS_FILE_OPTION \
      $DEFAULTS_GROUP_OPTION \
@@ -747,8 +748,8 @@ then
      --skip-networking \
      --skip-mysqlx \
     "
-    
-    #define USER and PW 
+
+    #define USER and PW
     CLONE_PSWD=`wsrep_gen_secret`"$PSWD_POLICY"
     CLONE_USER="clone_sst"
 
@@ -757,53 +758,53 @@ then
     # 1) we send the message ready
     # 2) we wait for donor to send message
     # 3) IF message is SST@DONORIP:PORT (inside the IST file) we exit loop and continue SST
-    #    IF IST we exit SST script sending the UUID:position 
-    # 4) IF SST Process continue 
+    #    IF IST we exit SST script sending the UUID:position
+    # 4) IF SST Process continue
 
     #check if there is another netcat process on the IP port we need and try to kill it.
     NETCAT_KILL=`ps -x|grep -e "nc -l -k $WSREP_SST_OPT_HOST $TSST_PORT"|grep -v "grep"|cut -d ' ' -f 2`
     if [ ! "$NETCAT_KILL" == "" ];then
         wsrep_log_info "-> Existing NetCat PID: $NETCAT_KILL. Will try to kill it"
         kill -9 $NETCAT_KILL
-        if [ "$?" != "0" ]; then 
-            wsrep_log_debug "-> Cannot kill the existing NetCat process PID $NETCAT_KILL"  
+        if [ "$?" != "0" ]; then
+            wsrep_log_debug "-> Cannot kill the existing NetCat process PID $NETCAT_KILL"
         fi
     fi
 
     #OPEN NETCAT to receive messages from DONOR (like IST)
     wsrep_log_info "-> Opening NETCAT: nc -l $WSREP_SST_OPT_HOST $TSST_PORT"
-    nc -l -k $WSREP_SST_OPT_HOST $TSST_PORT > $WSREP_SST_OPT_DATA/XST_FILE.txt & 
+    nc -l -k $WSREP_SST_OPT_HOST $TSST_PORT > $WSREP_SST_OPT_DATA/XST_FILE.txt &
     NC_PID=$!
     wsrep_log_info "-> NETCAT PID $NC_PID"
     if [ "$NC_PID" == "" ];then
         wsrep_log_error "-> Cannot open Netcat at given port $WSREP_SST_OPT_HOST $TSST_PORT check if the port is already taken"
         exit 1
     fi
-    
+
     # Report clone credentials/address to the caller
     wsrep_log_debug "-> ready passing string |$CLONE_USER:$CLONE_PSWD]$WSREP_SST_OPT_HOST:$CLONE_PORT|"
     echo "ready $CLONE_USER:$CLONE_PSWD]$WSREP_SST_OPT_HOST:$CLONE_PORT"
 
     #WAIT for Donor message
-    wsrep_log_debug "-> wait $TIMOUT_WAIT_XST"   
-    while [ ! -s  $WSREP_SST_OPT_DATA/XST_FILE.txt ];do 
-          
+    wsrep_log_debug "-> wait $TIMOUT_WAIT_XST"
+    while [ ! -s  $WSREP_SST_OPT_DATA/XST_FILE.txt ];do
+
          if [ "$TIMOUT_WAIT_XST" == "0" ]; then
             wsrep_log_error "TIMEOUT Waiting for the DONOR MESSAGE"
             break ;
-         fi            
+         fi
          sleep 1
-         
-        ((TIMOUT_WAIT_XST-=1))  
-    done 
-    
+
+        ((TIMOUT_WAIT_XST-=1))
+    done
+
     wsrep_log_debug "-> WAIT DIR DONOR MESSAGE DONE"
-    
+
     if [[ ! `cat $WSREP_SST_OPT_DATA/XST_FILE.txt` =~ "SST@" ]];then
         wsrep_log_info "DONOR SAY IST"
         wsrep_log_debug "-> RECOVER POSITION TO SEND OUT DONOR IST"
-         RP_PURGED=`cat $WSREP_SST_OPT_DATA/XST_FILE.txt`   
-         wsrep_log_debug "-> POSITION: $RP_PURGED"         
+         RP_PURGED=`cat $WSREP_SST_OPT_DATA/XST_FILE.txt`
+         wsrep_log_debug "-> POSITION: $RP_PURGED"
          echo $RP_PURGED
 #         rm -f $CLONE_ERR || :
          rm -f  $WSREP_SST_OPT_DATA/XST_FILE.txt || :
@@ -811,11 +812,11 @@ then
          exit 0
     else
          wsrep_log_info "DONOR SAY SST"
-         RP_PURGED=`cat $WSREP_SST_OPT_DATA/XST_FILE.txt`   
+         RP_PURGED=`cat $WSREP_SST_OPT_DATA/XST_FILE.txt`
          RP_PURGED_EMERGENCY=${RP_PURGED#"SST@"}
          wsrep_log_debug "-> recovered position from DONOR: $RP_PURGED_EMERGENCY"
-         
-    fi    
+
+    fi
 ##################################################################################################
 
 
@@ -826,10 +827,10 @@ then
         # No data dir, need to initialize one first, to make connections to
         # this node possible.
         # We need to use a temporary empty data directory, because the
-        # actual datadir may already contain some wsrep-related files    
+        # actual datadir may already contain some wsrep-related files
         wsrep_log_info "Initializing data directory at $tmp_datadir"
 
-        wsrep_log_info "INITIALIZE DB"  
+        wsrep_log_info "INITIALIZE DB"
         #reset CLONE log
         echo "" > $CLONE_ERR
         eval $CLONE_ENV $CLONE_BINARY $DEFAULT_OPTIONS \
@@ -842,15 +843,15 @@ then
           done
           wsrep_log_error "Full log at $CLONE_ERR"
           exit 1 )
-          
+
                 # move initialized data directory structure to real datadir and cleanup
         mv --force "$tmp_datadir"/* "$WSREP_SST_OPT_DATA/"
         sleep 2
-        wsrep_log_debug "-> REMOVE $tmp_datadir"  
+        wsrep_log_debug "-> REMOVE $tmp_datadir"
         rm -rf "$tmp_datadir"
-  
-        wsrep_log_info "INITIALIZE DB DONE"  
-    fi 
+
+        wsrep_log_info "INITIALIZE DB DONE"
+    fi
 
 # Need to create an extra user for 'localhost' because in some installations
 # by default exists user ''@'localhost' and shadows every user with '%'.
@@ -870,21 +871,21 @@ EOF
     wsrep_log_info "Launching clone recipient daemon"
     wsrep_log_info "-> using: $CLONE_ENV $CLONE_BINARY_SAFE $DEFAULT_OPTIONS "
     wsrep_log_debug "-> Test connection as: -u$CLONE_USER -p$CLONE_PSWD -h $CLONE_HOST -P $CLONE_PORT"
-    
+
     #Define client
     MYSQL_ACLIENT="$MYSQL_CLIENT -u$CLONE_USER -S$CLONE_SOCK --batch --skip_column_names --silent"
-    
-    
+
+
     #HERE We start the instance that will get the clone
     eval WSREP_SST_CLONE=1 $CLONE_ENV $CLONE_BINARY $DEFAULT_OPTIONS \
         --wsrep_provider=none --init_file="$CLONE_SQL" >> $CLONE_ERR &
-    
+
     wsrep_log_info "-> Initialization user returned $?"
-     
+
     if [ ! "$?" == "0" ]; then
         wsrep_log_error "-> User Creation on Joiner node failed, possible permission denied. Check permissions for "
         #we will try to silently shutdown the instance
-        `$MYSQL_ACLIENT -e "SHUTDOWN" 2> /dev/null` || : 
+        `$MYSQL_ACLIENT -e "SHUTDOWN" 2> /dev/null` || :
         exit 1
     fi
 
@@ -894,20 +895,20 @@ EOF
         sleep 0.2
     done
     CLONE_REAL_PID=`cat $CLONE_PID_FILE`
-    
+
     if [[ -n "$WSREP_LOG_DEBUG" ]]; then
-        GRANTS=`$MYSQL_ACLIENT -uroot -NB -e "show grants for '$CLONE_USER'@'localhost'"` 
+        GRANTS=`$MYSQL_ACLIENT -uroot -NB -e "show grants for '$CLONE_USER'@'localhost'"`
         wsrep_log_debug "-> Clone user grants: $GRANTS"
     fi
-    
+
     trap cleanup_joiner EXIT
 
     export MYSQL_PWD=$CLONE_PSWD
-    wsrep_log_debug "-> Exported MySQL password $MYSQL_PWD"  
-    
+    wsrep_log_debug "-> Exported MySQL password $MYSQL_PWD"
+
     wsrep_log_info "Waiting for clone recipient daemon to be ready for connections at port $CLONE_PORT"
     wsrep_log_debug "-> connecting as: $MYSQL_CLIENT -u$CLONE_USER -h$CLONE_HOST -P$CLONE_PORT"
-    to_wait=60 # 1 minute Should we put this in the config?? 
+    to_wait=60 # 1 minute Should we put this in the config??
     until $MYSQL_CLIENT -u$CLONE_USER -h$CLONE_HOST -P$CLONE_PORT \
           -e 'SELECT USER()' > /dev/null
     do
@@ -923,25 +924,25 @@ EOF
 
 #    MYSQL_ACLIENT="$MYSQL_CLIENT -u$CLONE_USER -S$CLONE_SOCK --batch --skip_column_names --silent"
     wsrep_log_info "-> MYSQL_ACLIENT: $MYSQL_ACLIENT"
-    
+
     wsrep_log_info "Joiner setup."
     setup_clone_plugin "recipient"
-  
+
     wsrep_log_info "Waiting for clone recipient daemon to finish"
-   
+
    #getting clone process status report
     while check_pid_file "$CLONE_PID_FILE"
     do
-        STATUS=`$MYSQL_ACLIENT -NB -e "select format(((data/estimate)*100),2) 'completed%' from performance_schema.clone_progress where stage like 'FILE_COPY';" 2> /dev/null` || :  
+        STATUS=`$MYSQL_ACLIENT -NB -e "select format(((data/estimate)*100),2) 'completed%' from performance_schema.clone_progress where stage like 'FILE_COPY';" 2> /dev/null` || :
         wsrep_log_info "Copy at: ${STATUS}%"
         #wsrep_log_debug "Checking parent: $WSREP_SST_OPT_PARENT"
         check_parent $WSREP_SST_OPT_PARENT
-        sleep 1 # Should this be in the config as well? 
+        sleep 1 # Should this be in the config as well?
     done
-       
+
     CLONE_REAL_PID=0
     wsrep_log_info "clone recepient daemon finished"
- 
+
     wsrep_log_info "Performing data recovery"
 
     wsrep_log_debug "-> RECOVERY COMMAND LINE: $CLONE_ENV $CLONE_BINARY $DEFAULT_OPTIONS --wsrep_provider=none"
@@ -956,7 +957,7 @@ EOF
        sleep 2
        wsrep_log_debug "-> waiting"
    done
-   # we want to be sure not only that the daemon is up but that all recovery is done 
+   # we want to be sure not only that the daemon is up but that all recovery is done
    # correctly and we can connect before shutdon it again
    export MYSQL_PWD=$CLONE_PSWD
    until $MYSQL_CLIENT -u$CLONE_USER -h$CLONE_HOST -P$CLONE_PORT -e 'SHUTDOWN' 2> /dev/null
@@ -970,11 +971,11 @@ EOF
         to_wait=$(( $to_wait - 1 ))
         sleep 1
     done
-   CLONE_PID=`cat $CLONE_PID_FILE`  
+   CLONE_PID=`cat $CLONE_PID_FILE`
 
    wsrep_log_debug "-> SHUTDOWN $CLONE_PID"
    kill -15 $CLONE_PID 2> /dev/null || :
-   
+
    # wait for the receiver process to end
    wsrep_log_info "Waiting service to go down"
    until [ ! -f "${CLONE_SOCK}.lock" ]
@@ -984,24 +985,24 @@ EOF
    done
 #
    wsrep_log_info "SHUTDOWN done"
-    
+
     wsrep_log_info "Second restart for recovery position"
 
     wsrep_log_debug "-> Second restart: $CLONE_BINARY $DEFAULT_OPTIONS $SKIP_NETWORKING_OPTIONS --wsrep_recover"
      eval $CLONE_ENV $CLONE_BINARY $DEFAULT_OPTIONS $SKIP_NETWORKING_OPTIONS --wsrep_recover >> $CLONE_ERR 2>&1
 
-        
+
     RP="$(grep -a '\[WSREP\] Recovered position:' $CLONE_ERR || :)"
     RP_PURGED=`echo $RP | sed 's/.*WSREP\]\ Recovered\ position://' | sed 's/^[ \t]*//'`
     wsrep_log_info "Recovered POSITION: $RP_PURGED"
-    
+
     #If an invalid recovery position is returned we report the one we get from Donor
     if [ "$RP_PURGED" == "00000000-0000-0000-0000-000000000000:-1" ]; then
         RP_PURGED=$RP_PURGED_EMERGENCY
     fi
     if [ ! "$RP_PURGED" == "" ]; then
-        
-        ORIG_IFS=$IFS    
+
+        ORIG_IFS=$IFS
         IFS=':'
         read -ra gtid_arr <<< "$RP_PURGED"
         uuid="${gtid_arr[0]}"
@@ -1015,10 +1016,10 @@ uuid:    $uuid
 seqno:   $position
 safe_to_bootstrap: 0
 EOF
-        
+
     fi
-    
-    
+
+
     # Remove created clone user
 cat << EOF > "$CLONE_SQL"
 SET SESSION sql_log_bin=OFF;
@@ -1032,27 +1033,27 @@ EOF
        --wsrep_provider=none  --init-file="$CLONE_SQL" >> $CLONE_ERR 2>&1
 
       if [ "$?" == "0" ]; then
-        wsrep_log_info "CLEAN UP DONE" 
+        wsrep_log_info "CLEAN UP DONE"
         if [ -z "$RP" ]
         then
-            echo "Failed to recover position from $CLONE_ERR";
+            wsrep_log_debug "Failed to recover position from $CLONE_ERR";
         else
-            wsrep_log_debug "->SENDING MESSAGE: $RP_PURGED " 
+            wsrep_log_debug "->SENDING MESSAGE: $RP_PURGED "
             echo $RP | sed 's/.*WSREP\]\ Recovered\ position://' | sed 's/^[ \t]*//'
             CLEANUP_FILES=1
-            exit 0 
+            exit 0
         fi
         #forcing restart of parent
         CLEAN FILES=1
-        wsrep_cleanup_progress_file 
+        wsrep_cleanup_progress_file
         cleanup_joiner
-        
+
         wsrep_log_debug "-> RESTARTING PARENT $PARENT_PID"
         kill -9 $PARENT_PID
       else
        wsrep_log_ERROR "Something failed in the cleanup"
       fi
-   
+
 else
     wsrep_log_error "Unrecognized role: '$WSREP_SST_OPT_ROLE'"
     exit $EINVAL
