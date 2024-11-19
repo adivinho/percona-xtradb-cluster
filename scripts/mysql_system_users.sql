@@ -1,4 +1,4 @@
--- Copyright (c) 2018, 2023, Oracle and/or its affiliates.
+-- Copyright (c) 2018, 2024, Oracle and/or its affiliates.
 --
 -- This program is free software; you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License, version 2.0,
@@ -95,15 +95,11 @@ GRANT INSERT,DELETE ON mysql.plugin TO 'mysql.pxc.sst.role'@localhost WITH GRANT
 GRANT CLONE_ADMIN, SYSTEM_VARIABLES_ADMIN, SUPER, SHUTDOWN, EXECUTE ON *.* to 'mysql.pxc.sst.role'@localhost WITH GRANT OPTION;
 GRANT SELECT,UPDATE,INSERT ON performance_schema.* TO 'mysql.pxc.sst.role'@localhost WITH GRANT OPTION;
 
-
-
 GRANT ALTER, CREATE, SELECT, INSERT ON PERCONA_SCHEMA.xtrabackup_history TO 'mysql.pxc.sst.role'@localhost;
 -- For some reason this is also needed, although the docs say BACKUP_ADMIN is enough
 GRANT SELECT ON performance_schema.* TO 'mysql.pxc.sst.role'@localhost;
 -- Need this to create the PERCONA_SCHEMA database if needed
 GRANT CREATE ON PERCONA_SCHEMA.* to 'mysql.pxc.sst.role'@localhost;
-
--- GRANT ALL PRIVILEGES ON *.* TO 'mysql.pxc.sst.role'@localhost WITH GRANT OPTION;
 
 -- this is a plugin priv that might not be registered
 INSERT IGNORE INTO mysql.global_grants VALUES ('mysql.infoschema', 'localhost', 'AUDIT_ABORT_EXEMPT', 'N');
