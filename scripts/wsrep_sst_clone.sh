@@ -644,9 +644,9 @@ EOF
 
         # Instruct recipient to shutdown
         # export MYSQL_PWD="$WSREP_SST_OPT_REMOTE_JOINER_PSWD"
-        wsrep_log_info "BYPASS SENDING IST_FILE TO JOINER NetCat: nc $SST_HOST_STRIPPED $WSREP_SST_OPT_REMOTE_HOSTPORT"
-        echo $WSREP_SST_OPT_GTID | nc $SST_HOST_STRIPPED $WSREP_SST_OPT_REMOTE_HOSTPORT || :
-        sleep 4
+        wsrep_log_info "BYPASS SENDING IST_FILE TO JOINER NetCat: nc -w 1 $SST_HOST_STRIPPED $WSREP_SST_OPT_REMOTE_HOSTPORT"
+        echo $WSREP_SST_OPT_GTID | nc -w 1 $SST_HOST_STRIPPED $WSREP_SST_OPT_REMOTE_HOSTPORT || :
+        sleep 2
         wsrep_log_debug "-> Exiting with gtid: $WSREP_SST_OPT_GTID"
     fi
 
