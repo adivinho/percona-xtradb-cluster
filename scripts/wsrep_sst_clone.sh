@@ -104,8 +104,6 @@ NC_PID=""
 RP_PURGED_EMERGENCY=""
 WSREP_SST_OPT_LPORT=""
 WSREP_SST_OPT_PARENT=""
-#Netcat port will use the MySQL Joiner port
-TSST_PORT=""
 #Default to 4444 as we do for XB
 CLONE_INSTANCE_PORT=4444
 
@@ -480,7 +478,7 @@ then
     WSREP_SST_OPT_REMOTE_HOST_WITH_PORT=$(echo $WSREP_SST_OPT_ADDR_LOCAL | cut -d '@' -f 2)
     WSREP_SST_OPT_REMOTE_HOST=$(echo $WSREP_SST_OPT_REMOTE_HOST_WITH_PORT | cut -d ':' -f 1)
     WSREP_SST_OPT_REMOTE_HOSTPORT=$(echo $WSREP_SST_OPT_REMOTE_HOST_WITH_PORT | cut -d ':' -f 2)
-    # TSST_PORT=$WSREP_SST_OPT_REMOTE_HOSTPORT
+    
     SST_HOST_STRIPPED=$(echo $WSREP_SST_OPT_REMOTE_HOST | sed 's/^\[//' | sed 's/\]$//')
 
     wsrep_log_debug "-> WSREP_SST_OPT_REMOTE_AUTH = $WSREP_SST_OPT_REMOTE_AUTH "
@@ -488,7 +486,7 @@ then
     wsrep_log_debug "-> WSREP_SST_OPT_REMOTE_HOST = $WSREP_SST_OPT_REMOTE_HOST "
     wsrep_log_debug "-> WSREP_SST_OPT_REMOTE_HOSTPORT = $WSREP_SST_OPT_REMOTE_HOSTPORT "
     wsrep_log_debug "-> SST_HOST_STRIPPED = $SST_HOST_STRIPPED "
-#    wsrep_log_debug "-> TSST_PORT = $WSREP_SST_OPT_REMOTE_HOSTPORT "
+
 
 
 
@@ -793,11 +791,11 @@ then
         JOINER_CLONE_HOST="$WSREP_SST_OPT_ADDR_LOCAL"
         JOINER_CLONE_PORT=$CLONE_INSTANCE_PORT
     fi
-#    TSST_PORT=$JOINER_CLONE_PORT
+
 
     wsrep_log_debug "-> JOINER_CLONE_HOST $JOINER_CLONE_HOST"
     wsrep_log_debug "-> JOINER_CLONE_PORT $JOINER_CLONE_PORT"
-#    wsrep_log_debug "-> TSST_PORT $JOINER_CLONE_PORT"
+
 
     # Define the tmp directory
     tmp_datadir=$(wsrep_mktemp_in_dir "$WSREP_SST_OPT_DATA" -d)
