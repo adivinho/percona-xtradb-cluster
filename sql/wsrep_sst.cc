@@ -1453,12 +1453,9 @@ static void *sst_donor_thread(void *a) {
   return NULL;
 }
 
-static int sst_donate_other(const char *method,
-                            const char *addr,
-                            const wsrep::gtid &gtid,
-                            bool bypass,
-                            sst_auth&auth,
-                            char **env)  // carries auth info
+static int sst_donate_other(const char *method, const char *addr,
+                            const wsrep::gtid &gtid, bool bypass,
+                            sst_auth&auth, char **env)  // carries auth info
 {
   int const cmd_len = 4096;
   wsp::string cmd_str(cmd_len);
@@ -1618,7 +1615,7 @@ int wsrep_sst_donate(const std::string &msg, const wsrep::gtid &current_gtid, co
   */
   const char* addr= strrchr(data, '@');
   wsp::string remote_auth;
-  if (addr){
+  if (addr) {
     remote_auth.set(strndup(data, addr - data));
     addr++;
   }
