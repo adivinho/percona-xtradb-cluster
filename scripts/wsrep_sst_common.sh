@@ -1005,7 +1005,7 @@ function exec_sql() {
 #
 # Parameters:
 #   None
-# 
+#
 function read_variables_from_stdin()
 {
     while read line; do
@@ -1024,7 +1024,7 @@ function read_variables_from_stdin()
                 ;;
             'sst_remote_password')
                 WSREP_SST_OPT_REMOTE_PSWD="$value"
-                ;;                
+                ;;
             *)
                 wsrep_log_warning "Unrecognized input: $line"
         esac

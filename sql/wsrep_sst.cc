@@ -1242,7 +1242,7 @@ int wsrep_remove_sst_user(bool initialize_thread) {
                         nullptr,
                         "SET SESSION lock_wait_timeout = 1;",
                         nullptr,
-                        "REVOKE mysql.pxc.sst.role FROM 'mysql.pxc.sst.user'@'localhost';",
+                        "REVOKE IF EXISTS 'mysql.pxc.sst.role' FROM 'mysql.pxc.sst.user'@'localhost' IGNORE UNKNOWN USER;",
                         nullptr,
                         "DROP USER IF EXISTS 'mysql.pxc.sst.user'@localhost;",
                         nullptr,
@@ -1656,7 +1656,7 @@ int wsrep_sst_donate(const std::string &msg, const wsrep::gtid &current_gtid, co
   };);
 
   int ret;
-  ret = sst_donate_other(method, addr, current_gtid, bypass,auth, env());
+  ret = sst_donate_other(method, addr, current_gtid, bypass, auth, env());
 
   /* Above methods should return 0 in case of success and negative value
    * in case of failure. If we have any positive value here it means that we
