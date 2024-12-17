@@ -5,9 +5,9 @@
 
 --disable_query_log
 --connection node_1
-# CALL mtr.add_suppression("Failed to remove page file");
+CALL mtr.add_suppression("Failed to remove page file");
 --connection node_2
-# CALL mtr.add_suppression("Failed to remove page file");
+CALL mtr.add_suppression("Failed to remove page file");
 --enable_query_log
 
 
