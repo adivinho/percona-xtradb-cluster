@@ -87,8 +87,6 @@ COUNT(*) = 0
 DROP TABLE t1;
 COMMIT;
 SET AUTOCOMMIT=ON;
-CALL mtr.add_suppression("Found an entry in the 'role_edges' table with unknown authorization ID '`mysql.pxc.sst.user`@`localhost`'" );
-CALL mtr.add_suppression("Found an entry in the 'default_roles' table with unknown authorization ID '`mysql.pxc.sst.user`@`localhost`'");
 Performing State Transfer on a server that has been killed and restarted
 while a DDL was in progress on it
 CREATE TABLE t1 (f1 CHAR(255)) ENGINE=InnoDB;
