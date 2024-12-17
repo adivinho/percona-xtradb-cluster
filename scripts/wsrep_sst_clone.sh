@@ -227,13 +227,14 @@ cleanup_donor()
         if [  "$CLEANUP_CLONE_SSL" == "yes" ]
         then
             wsrep_log_debug "-> SSL DONOR reset clone_ssl variables [CLEANUP_CLONE_SSL: $CLEANUP_CLONE_SSL]"
-            $MYSQL_ACLIENT -e "SET GLOBAL clone_ssl_cert='';
+            $MYSQL_ACLIENT -e "SET wsrep_on=OFF;
+                               SET GLOBAL clone_ssl_cert='';
                                SET GLOBAL clone_ssl_key='';
                                SET GLOBAL clone_ssl_ca='';" || :
         fi
     fi
     if [ ! "$WSREP_SST_OPT_REMOTE_JOINER_USER" == "" ]; then
-        $MYSQL_ACLIENT -e "DROP USER IF EXISTS '$WSREP_SST_OPT_REMOTE_JOINER_USER'@'%';  SET wsrep_on = OFF; $CLEANUP_CLONE_PLUGIN" || :
+        $MYSQL_ACLIENT -e "SET wsrep_on=OFF; DROP USER IF EXISTS '$WSREP_SST_OPT_REMOTE_JOINER_USER'@'%'; $CLEANUP_CLONE_PLUGIN" || :
     fi
 
     rm -rf "$CLONE_EXECUTE_SQL" ||:
@@ -544,6 +545,7 @@ then
         wsrep_log_debug "-> PREPARED DONE"
 
 cat << EOF > "$CLONE_PREPARE_SQL"
+SET wsrep_on=OFF;
 CREATE USER "$WSREP_SST_OPT_REMOTE_JOINER_USER"@"%" IDENTIFIED BY '$WSREP_SST_OPT_REMOTE_JOINER_PSWD' $REQUIRE_SSL;
 GRANT BACKUP_ADMIN ON *.* TO "$WSREP_SST_OPT_REMOTE_JOINER_USER"@"%";
 GRANT SELECT ON performance_schema.* TO "$WSREP_SST_OPT_REMOTE_JOINER_USER"@"%";
@@ -1080,11 +1082,12 @@ EOF
         rm -f $CLONE_PID_FILE || true
     fi
 
-# Remove created clone user
+# Remove created clone user and SST pxc user
 cat << EOF > "$CLONE_SQL"
 SET SESSION sql_log_bin=OFF;
 DROP USER IF EXISTS $CLONE_USER;
 DROP USER IF EXISTS $CLONE_USER@'localhost';
+DROP USER IF EXISTS $WSREP_SST_OPT_USER;
 SHUTDOWN;
 EOF
     

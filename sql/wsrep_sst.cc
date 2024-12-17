@@ -1242,8 +1242,6 @@ int wsrep_remove_sst_user(bool initialize_thread) {
                         nullptr,
                         "SET SESSION lock_wait_timeout = 1;",
                         nullptr,
-                        "REVOKE IF EXISTS 'mysql.pxc.sst.role' FROM 'mysql.pxc.sst.user'@'localhost' IGNORE UNKNOWN USER;",
-                        nullptr,
                         "DROP USER IF EXISTS 'mysql.pxc.sst.user'@localhost;",
                         nullptr,
                         nullptr,
