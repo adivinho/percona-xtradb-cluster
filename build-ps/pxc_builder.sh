@@ -236,6 +236,7 @@ get_sources(){
     rsync -av ${WORKDIR}/percona-xtradb-cluster/wsrep-lib/ ${PXCDIR}/wsrep-lib --exclude .git
     rsync -av ${WORKDIR}/percona-xtradb-cluster/extra/coredumper/ ${PXCDIR}/extra/coredumper --exclude .git
     rsync -av ${WORKDIR}/percona-xtradb-cluster/extra/libkmip/ ${PXCDIR}/extra/libkmip --exclude .git
+    rsync -av ${WORKDIR}/percona-xtradb-cluster/extra/jwt-cpp/ ${PXCDIR}/extra/jwt-cpp --exclude .git
 
     sed -i 's:ROUTER_RUNTIMEDIR:/var/run/mysqlrouter/:g' ${PXCDIR}/packaging/rpm-common/*
     cd ${PXCDIR}/packaging/rpm-common || exit
